@@ -37,7 +37,7 @@ class CloudFormationBuddy(object):
         try:
             stacks = self.client.describe_stacks(StackName=self.stack_name)['Stacks']
             if len(stacks) >= 1:
-                print_utility.info("Stack Description - {}".format(pformat(stacks)))
+                print_utility.info(f"Stack Description - {pformat(stacks)}")
                 self.stack_description = stacks[0]
                 self.stack_id = self.stack_description['StackId']
                 return True
@@ -53,12 +53,14 @@ class CloudFormationBuddy(object):
         self._validate_changeset_operation_ready('delete_change_set')
         if self.get_change_set_execution_status(refresh=True) == 'EXECUTE_FAILED':
             print_utility.info(
-                "Skipping Delete ChangeSet - ChangeSetID: {} Execution Status Failed".format(
-                    self.existing_change_set_id))
+                f"Skipping Delete ChangeSet - ChangeSetID: {self.existing_change_set_id} Execution Status Failed"
+            )
+
             return
         response = self.client.delete_change_set(ChangeSetName=self.existing_change_set_id)
         print_utility.info(
-            "Deleted ChangeSet - ChangeSetID: {} Response: {}".format(self.existing_change_set_id, response))
+            f"Deleted ChangeSet - ChangeSetID: {self.existing_change_set_id} Response: {response}"
+        )
 
     def create_change_set(self, template_file_url, parameter_file):
         resp = self.client.create_change_set(
@@ -81,7 +83,10 @@ class CloudFormationBuddy(object):
         except WaiterError as we:
             self.change_set_description = we.last_response
             noop = self._is_noop_changeset()
-            print_utility.info("ChangeSet Failed to Create - {}".format(self.change_set_description['StatusReason']))
+            print_utility.info(
+                f"ChangeSet Failed to Create - {self.change_set_description['StatusReason']}"
+            )
+
             if not noop:
                 self.log_changeset_status()
                 self._clean_change_set_and_exit()
@@ -123,7 +128,7 @@ class CloudFormationBuddy(object):
 
     def _validate_changeset_operation_ready(self, operation):
         if not self.existing_change_set_id:
-            raise Exception("Attempted to {} before create was called".format(operation))
+            raise Exception(f"Attempted to {operation} before create was called")
 
     def should_execute_change_set(self):
         self._validate_changeset_operation_ready('should_execute_change_set')
@@ -131,29 +136,32 @@ class CloudFormationBuddy(object):
         if self._is_noop_changeset():
             return False
         changes_ = self.change_set_description['Changes']
-        if len(changes_) == 2:
-            if pydash.get(changes_[0], 'ResourceChange.ResourceType') == "AWS::ECS::Service":
-                if pydash.get(changes_[1], 'ResourceChange.ResourceType') == "AWS::ECS::TaskDefinition":
-                    if self.deploy_ctx.should_skip_ecs_trivial_update():
-                        print_utility.info(
-                            "WARN: Skipping changeset update because no computed changes except to service & task "
-                            "rerun with SKIP_ECS=True to force")
-                        return False
+        if (
+            len(changes_) == 2
+            and pydash.get(changes_[0], 'ResourceChange.ResourceType')
+            == "AWS::ECS::Service"
+            and pydash.get(changes_[1], 'ResourceChange.ResourceType')
+            == "AWS::ECS::TaskDefinition"
+            and self.deploy_ctx.should_skip_ecs_trivial_update()
+        ):
+            print_utility.info(
+                "WARN: Skipping changeset update because no computed changes except to service & task "
+                "rerun with SKIP_ECS=True to force")
+            return False
         return True
 
     def should_create_change_set(self):
         exists = self.does_stack_exist()
-        if exists:
-            if self.get_stack_status() == 'ROLLBACK_COMPLETE':
-                print_utility.error("Can not update stack in state 'ROLLBACK_COMPLETE' -"
-                                    " delete stack to recreate.",
-                                    raise_exception=True)
+        if exists and self.get_stack_status() == 'ROLLBACK_COMPLETE':
+            print_utility.error("Can not update stack in state 'ROLLBACK_COMPLETE' -"
+                                " delete stack to recreate.",
+                                raise_exception=True)
         return exists
 
     def create_stack(self, template_file_url, parameter_file):
         action = 'create-stack'
         self._start_update_event(action)
-        print_utility.info("Template URL: " + template_file_url)
+        print_utility.info(f"Template URL: {template_file_url}")
         resp = self.client.create_stack(
             StackName=self.stack_name,
             TemplateURL=template_file_url,
@@ -185,27 +193,34 @@ class CloudFormationBuddy(object):
             self.stack_description = we.last_response
             success = False
         self._finish_update_event(action, success)
-        print_utility.info("Created Stack -  StackID: {}".format(resp['StackId']))
+        print_utility.info(f"Created Stack -  StackID: {resp['StackId']}")
         if not success:
             raise Exception("Cloudformation stack failed to create")
 
     def log_stack_status(self, print_stack_events=False):
-        print_utility.banner_warn("Stack Details: {}".format(self.stack_id), pformat(self.stack_description,indent=2))
+        print_utility.banner_warn(
+            f"Stack Details: {self.stack_id}",
+            pformat(self.stack_description, indent=2),
+        )
+
         if print_stack_events:
             self._print_stack_events()
 
     def log_changeset_status(self, warn=True):
         if warn:
-            print_utility.banner_warn("ChangeSet Details: {}".format(self.existing_change_set_id),
-                                  pformat(self.change_set_description))
+            print_utility.banner_warn(
+                f"ChangeSet Details: {self.existing_change_set_id}",
+                pformat(self.change_set_description),
+            )
+
         else:
-            print_utility.info("ChangeSet Details: {}".format(self.existing_change_set_id))
+            print_utility.info(f"ChangeSet Details: {self.existing_change_set_id}")
             print_utility.info_banner(pformat(self.change_set_description))
 
     def _clean_change_set_and_exit(self, failed=False, failure_stage='create'):
         self.delete_change_set()
         if failed:
-            raise Exception("FAILED: Could not {} changeset".format(failure_stage))
+            raise Exception(f"FAILED: Could not {failure_stage} changeset")
 
     def _start_update_event(self, action):
         self.deploy_ctx.notify_event(
@@ -231,7 +246,10 @@ class CloudFormationBuddy(object):
         if len(self.exports) == 0: self._load_export_values()
         val = self.exports.get(fully_qualified_param_name, None)
         if val is None:
-            print_utility.warn("Could not locate export value - {}".format(fully_qualified_param_name))
+            print_utility.warn(
+                f"Could not locate export value - {fully_qualified_param_name}"
+            )
+
         return val
 
     def _load_export_values(self):
@@ -240,8 +258,7 @@ class CloudFormationBuddy(object):
         while export_list is not None:
             for export in export_list:
                 self.exports[export['Name']] = export['Value']
-            next_ = export_results.get('NextToken', None)
-            if next_:
+            if next_ := export_results.get('NextToken', None):
                 export_results = self.client.list_exports(NextToken=next_)
                 export_list = export_results.get('Exports', None)
             else:
@@ -252,7 +269,7 @@ class CloudFormationBuddy(object):
         for param in self.stack_description.get('Parameters', []):
             if param['ParameterKey'] == param_val:
                 return param['ParameterValue']
-        print_utility.error("Could not locate parameter value: {}".format(param_val))
+        print_utility.error(f"Could not locate parameter value: {param_val}")
         return None
 
     def get_resource_list(self):
@@ -266,8 +283,7 @@ class CloudFormationBuddy(object):
         res_resources_list = res['StackResourceSummaries']
         while res_resources_list is not None:
             ret.extend(res_resources_list)
-            next_ = res.get('NextToken', None)
-            if next_:
+            if next_ := res.get('NextToken', None):
                 res = self.client.list_stack_resources(StackName=to_inspect, NextToken=next_)
                 res_resources_list = res['StackResourceSummaries']
             else:
@@ -280,8 +296,7 @@ class CloudFormationBuddy(object):
         res_stack_list = res['StackSummaries']
         while res_stack_list is not None:
             ret.extend(res_stack_list)
-            next_ = res.get('NextToken', None)
-            if next_:
+            if next_ := res.get('NextToken', None):
                 res = self.client.list_stacks(StackStatusFilter=['UPDATE_COMPLETE', 'CREATE_COMPLETE'], NextToken=next_)
                 res_stack_list = res['StackSummaries']
             else:
@@ -301,8 +316,7 @@ class CloudFormationBuddy(object):
         res_list = res['StackEvents']
         while res_list is not None:
             events.extend(res_list)
-            next_ = res.get('NextToken', None)
-            if next_:
+            if next_ := res.get('NextToken', None):
                 res = self.client.describe_stack_events(StackName=self.stack_name, NextToken=next_)
                 res_list = res['StackEvents']
             else:

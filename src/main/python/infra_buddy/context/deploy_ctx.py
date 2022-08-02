@@ -84,9 +84,9 @@ class DeployContext(dict):
 
     def print_self(self):
         print_utility.warn("Context:")
-        print_utility.warn("Stack: {}".format(self.stack_name))
+        print_utility.warn(f"Stack: {self.stack_name}")
         if len(self.stack_name_cache)>0:
-            print_utility.warn("Depth: {}".format(self.stack_name_cache))
+            print_utility.warn(f"Depth: {self.stack_name_cache}")
         if self.current_deploy:
             print_utility.banner_info("Deploy Defaults:",pformat(self.current_deploy.defaults))
         print_utility.banner_info("Environment:",pformat(self))
@@ -129,7 +129,7 @@ class DeployContext(dict):
             self['CONFIG_TEMPLATES_URL'] = self['CONFIG_TEMPLATES_EAST_URL']
             self.__dict__['CONFIG_TEMPLATES_URL'.lower()] = self['CONFIG_TEMPLATES_EAST_URL']
 
-        print_utility.info("deploy_ctx = {}".format(repr(self.__dict__)))
+        print_utility.info(f"deploy_ctx = {repr(self.__dict__)}")
 
     def _initalize_defaults(self, defaults,environment):
         self['DATADOG_KEY'] = ""
@@ -165,12 +165,12 @@ class DeployContext(dict):
         return self._get_required_default_configuration(REGION)
 
     def _get_required_default_configuration(self, key):
-        region = self.get(key, os.environ.get(key, None))
-        if not region:
+        if region := self.get(key, os.environ.get(key, None)):
+            return region
+        else:
             raise Exception("Required default not set {key}.\n"
                             "Configure --configuration-defaults or set ENVIRONMENT variable {key}".format(
                 key=key))
-        return region
 
     def notify_event(self, title, type, message=None):
         if self.notifier:
@@ -188,7 +188,7 @@ class DeployContext(dict):
         with open(file, 'r') as source:
             with open(os.path.join(destination,os.path.basename(file).replace('.tmpl','')),'w+') as destination:
                 temp_file_path = os.path.abspath(destination.name)
-                print_utility.info("Rendering template to path: {}".format(temp_file_path))
+                print_utility.info(f"Rendering template to path: {temp_file_path}")
                 self.temp_files.append(temp_file_path)
                 for line in source:
                     destination.write(self.expandvars(line))
@@ -201,11 +201,9 @@ class DeployContext(dict):
     def get_execution_plan(self):
         # type: () -> list(Deploy)
         execution_plan = self.service_definition.generate_execution_plan(self.template_manager, self)
-        artifact_plan = self.artifact_definition.generate_execution_plan(self)
-        if artifact_plan:
+        if artifact_plan := self.artifact_definition.generate_execution_plan(self):
             execution_plan.extend(artifact_plan)
-        monitor_plan = self.monitor_definition.generate_execution_plan(self)
-        if monitor_plan:
+        if monitor_plan := self.monitor_definition.generate_execution_plan(self):
             execution_plan.extend(monitor_plan)
         print_utility.progress("Execution Plan:")
         for deploy in execution_plan:
@@ -227,9 +225,7 @@ class DeployContext(dict):
             return transform(self.get(m.group(2) or m.group(1), m.group(0)))
 
         def transform( val):
-            if isinstance(val, bool):
-                return str(val).lower()
-            return str(val)
+            return str(val).lower() if isinstance(val, bool) else str(val)
 
         reVar = r'(?<!\\)\$(\w+|\{([^}]*)\})'
         sub = re.sub(reVar, replace_var, template_string)
@@ -237,14 +233,10 @@ class DeployContext(dict):
 
     def recursive_expand_vars(self,source):
         if isinstance(source,dict):
-            ret = {}
-            for key,value in source.items():
-                ret[key] = self.recursive_expand_vars(value)
+            ret = {key: self.recursive_expand_vars(value) for key, value in source.items()}
             return ret
         elif isinstance(source, list):
-            ret = []
-            for item in source:
-                ret.append(self.recursive_expand_vars(item))
+            ret = [self.recursive_expand_vars(item) for item in source]
             return ret
         elif isinstance(source, str):
             return self.expandvars(source)

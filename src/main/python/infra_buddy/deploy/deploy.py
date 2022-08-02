@@ -21,5 +21,5 @@ class Deploy(object):
         pass
 
     def __str__(self):
-        return "{} - {}".format(self.__class__.__name__,self.stack_name)
+        return f"{self.__class__.__name__} - {self.stack_name}"
 

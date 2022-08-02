@@ -39,15 +39,27 @@ class MonitorDefinitionTestCase(ParentTestCase):
 
     def test_monitor_expansion(self):
         dd_deploy, first_monitor = self.load_monitor_artifact('monitor_definition_tests/artifact_monitor_definition')
-        self.assertEqual(first_monitor['name'],
-                         "{}-{}-{}: ELB 500s High".format(self.test_deploy_ctx.environment,
-                                                      self.test_deploy_ctx.application,
-                                                      self.test_deploy_ctx.role),
-                         "Did not get expanded name")
-        self.assertTrue("application:{}".format(self.test_deploy_ctx.application) in first_monitor['query'],"Did not format query")
-        self.assertEqual(first_monitor['tags'],["application:{}".format(self.test_deploy_ctx.application),
-                                                "role:{}".format(self.test_deploy_ctx.role),
-                                                'environment:{}'.format(self.test_deploy_ctx.environment)])
+        self.assertEqual(
+            first_monitor['name'],
+            f"{self.test_deploy_ctx.environment}-{self.test_deploy_ctx.application}-{self.test_deploy_ctx.role}: ELB 500s High",
+            "Did not get expanded name",
+        )
+
+        self.assertTrue(
+            f"application:{self.test_deploy_ctx.application}"
+            in first_monitor['query'],
+            "Did not format query",
+        )
+
+        self.assertEqual(
+            first_monitor['tags'],
+            [
+                f"application:{self.test_deploy_ctx.application}",
+                f"role:{self.test_deploy_ctx.role}",
+                f'environment:{self.test_deploy_ctx.environment}',
+            ],
+        )
+
         self.assertEqual(first_monitor['type'],"metric alert","Did not rationalize metric type")
 
     def test_monitor_creation(self):

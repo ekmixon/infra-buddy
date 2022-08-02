@@ -45,21 +45,22 @@ exit_code = 0
 try:
     subprocess.check_call(["pyb", "--version"])
 except FileNotFoundError as e:
-    if py3 or py2 and e.errno == 2:
-        try:
-            subprocess.check_call([sys.executable, "-m", "pip.__main__", "install", "pybuilder"])
-        except subprocess.CalledProcessError as e:
-            sys.exit(e.returncode)
-    else:
+    if not py3 and (not py2 or e.errno != 2):
         raise
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip.__main__", "install", "pybuilder"])
+    except subprocess.CalledProcessError as e:
+        sys.exit(e.returncode)
 except subprocess.CalledProcessError as e:
         sys.exit(e.returncode)
 
 try:
     args = ["pyb", "clean", "install_build_dependencies", "package", "-o"]
     if os.environ.get('TRAVIS_BUILD_NUMBER') is not None:
-        args.append('-P')
-        args.append('build_number=0.1.{}'.format(os.environ.get('TRAVIS_BUILD_NUMBER')))
+        args.extend(
+            ('-P', f"build_number=0.1.{os.environ.get('TRAVIS_BUILD_NUMBER')}")
+        )
+
     subprocess.check_call(args)
     dist_dir = glob.glob(os.path.join(script_dir, "target", "dist", "*"))[0]
     for src_file in glob.glob(os.path.join(dist_dir, "*")):

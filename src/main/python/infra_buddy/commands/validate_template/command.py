@@ -22,8 +22,9 @@ def do_command(deploy_ctx, service_template_directory=None, service_type=None):
     # type: (DeployContext,[str or None],str) -> None
     if service_template_directory is None:
         print_utility.info(
-            "Service template directory was not provided.  Assuming service-type '{}' is built-in.".format(
-                service_type))
+            f"Service template directory was not provided.  Assuming service-type '{service_type}' is built-in."
+        )
+
         template = deploy_ctx.template_manager.get_known_template(template_name=service_type)
         deploy = CloudFormationDeploy(stack_name=deploy_ctx.stack_name, template=template, deploy_ctx=deploy_ctx)
     else:
@@ -32,6 +33,9 @@ def do_command(deploy_ctx, service_template_directory=None, service_type=None):
                                       deploy_ctx=deploy_ctx)
     errs = deploy.analyze()
     if errs > 0:
-        print_utility.error("Template raised {} errors ".format(errs), raise_exception=True)
+        print_utility.error(f"Template raised {errs} errors ", raise_exception=True)
     else:
-        print_utility.banner_warn("Service Template Validation - {}".format(service_type),"SUCCESS - No errors")
+        print_utility.banner_warn(
+            f"Service Template Validation - {service_type}",
+            "SUCCESS - No errors",
+        )

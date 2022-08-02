@@ -31,7 +31,10 @@ def cli(ctx, artifact_directory, application, role, environment, configuration_d
     if not configuration_defaults and os.path.exists('defaults.json'):
         configuration_defaults = 'defaults.json'
     if configuration_defaults or os.path.exists('defaults.json'):
-        print_utility.info("Loading default settings from path: {}".format(configuration_defaults))
+        print_utility.info(
+            f"Loading default settings from path: {configuration_defaults}"
+        )
+
         with open(configuration_defaults, 'r') as fp:
             loaded_defaults = json.load(fp)
     if artifact_directory:

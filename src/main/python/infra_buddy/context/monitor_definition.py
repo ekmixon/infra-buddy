@@ -89,9 +89,9 @@ class MonitorDefinition(object):
 
     @classmethod
     def create_from_directory(cls, artifact_directory):
-        # type: (str) -> MonitorDefinition
-        definition = MonitorDefinition._load_monitor_definition(artifact_directory)
-        if definition:
+        if definition := MonitorDefinition._load_monitor_definition(
+            artifact_directory
+        ):
             validate(definition, MonitorDefinition.schema)
             return cls.create(definition[_PROVIDER], definition[_MONITORS])
         else:
@@ -105,7 +105,10 @@ class MonitorDefinition(object):
     def _load_monitor_definition(artifact_directory):
         artifact_def_path = os.path.join(artifact_directory, _ARTIFACT_FILE)
         if os.path.exists(artifact_def_path):
-            print_utility.info("Defining artifact definition with monitor.json - {}".format(artifact_def_path))
+            print_utility.info(
+                f"Defining artifact definition with monitor.json - {artifact_def_path}"
+            )
+
             with open(artifact_def_path, 'r') as art_def:
                 return json.load(art_def)
         else:
@@ -121,7 +124,7 @@ class MonitorDefinition(object):
             path = os.path.join(destination_dir, _ARTIFACT_FILE)
         else:
             path = _ARTIFACT_FILE
-        print_utility.info("Persisting monitor definition - {}".format(path))
+        print_utility.info(f"Persisting monitor definition - {path}")
         with open(path, 'w') as file:
             json.dump(self.monitors, file)
         return path

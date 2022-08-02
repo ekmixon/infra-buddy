@@ -35,9 +35,12 @@ class S3TestCase(ParentTestCase):
 
     def test_bucket_configuration_us_east_1(self):
         test_deploy_ctx = DeployContext.create_deploy_context(
-            application="foo", role="bar-{}".format(self.run_random_word), environment="unit-test",
-            defaults=self.east_config
+            application="foo",
+            role=f"bar-{self.run_random_word}",
+            environment="unit-test",
+            defaults=self.east_config,
         )
+
         self._validate_s3(test_deploy_ctx)
 
     def _validate_s3(self, deploy_ctx):
@@ -47,14 +50,13 @@ class S3TestCase(ParentTestCase):
                              "Did not init correct path")
             self.assertEqual(s3_buddy.bucket.name, self.test_deploy_ctx.cf_bucket_name,
                              "Did not init correct bucket")
-            if deploy_ctx.region == 'us-east-1':
-                base = 's3'
-            else:
-                base = "s3-{}".format(deploy_ctx.region)
-            self.assertEqual(s3_buddy.url_base,
-                             "https://{}.amazonaws.com/unit-test-foo-cloudformation-deploy-resources".format(
-                                 base),
-                             "Did not init correct url")
+            base = 's3' if deploy_ctx.region == 'us-east-1' else f"s3-{deploy_ctx.region}"
+            self.assertEqual(
+                s3_buddy.url_base,
+                f"https://{base}.amazonaws.com/unit-test-foo-cloudformation-deploy-resources",
+                "Did not init correct url",
+            )
+
         finally:
             self.clean_s3(s3_buddy)
 

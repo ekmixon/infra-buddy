@@ -4,15 +4,8 @@ import time
 
 def _compare(expected_result, param, negate):
     if type(expected_result) is list:
-        if negate:
-            return param in expected_result
-        else:
-            return param not in expected_result
-
-    if negate:
-        return expected_result == param
-    else:
-        return expected_result != param
+        return param in expected_result if negate else param not in expected_result
+    return expected_result == param if negate else expected_result != param
 
 
 def waitfor(function_pointer, expected_result, interval_seconds, max_attempts, negate=False, args=None, exception=True):
@@ -25,9 +18,8 @@ def waitfor(function_pointer, expected_result, interval_seconds, max_attempts, n
         time.sleep(interval_seconds)
         latest = function_pointer(**args)
         attempt += 1
-    if attempt >= max_attempts:
-        # we failed
-        if exception: raise Exception("Wait condition failed: {func}".format(func=function_pointer))
-        return None
-    else:
+    if attempt < max_attempts:
         return latest
+    # we failed
+    if exception: raise Exception("Wait condition failed: {func}".format(func=function_pointer))
+    return None

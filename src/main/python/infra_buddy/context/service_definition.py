@@ -69,9 +69,8 @@ class ServiceDefinition(object):
         self.artifact_directory = artifact_directory
         service_definition_path = os.path.join(artifact_directory, _SERVICE_DEFINITION_FILE)
         if not os.path.exists(service_definition_path):
-            err_msg = "Service definition ({}) does not exist in artifact directory - {}".format(
-                _SERVICE_DEFINITION_FILE,
-                artifact_directory)
+            err_msg = f"Service definition ({_SERVICE_DEFINITION_FILE}) does not exist in artifact directory - {artifact_directory}"
+
             print_utility.error(err_msg)
             raise Exception(err_msg)
         with open(service_definition_path, 'r') as fp:
@@ -85,24 +84,33 @@ class ServiceDefinition(object):
                 self.deployment_parameters = service_definition[_DEPLOYMENT_PARAMETERS]
             env_deployment_parameters = '{environment}-deployment-parameters'.format(environment=environment)
             if env_deployment_parameters in service_definition:
-                print_utility.info("Updating deployment params with environment"
-                                   " specific settings - {}".format(env_deployment_parameters))
+                print_utility.info(
+                    f"Updating deployment params with environment specific settings - {env_deployment_parameters}"
+                )
+
                 self.deployment_parameters.update(service_definition[env_deployment_parameters])
-            print_utility.info("Loaded deployment parameters: " + pformat(self.deployment_parameters, indent=4))
+            print_utility.info(
+                f"Loaded deployment parameters: {pformat(self.deployment_parameters, indent=4)}"
+            )
+
             self.service_modifications = service_definition.get(_MODIFICATIONS, [])
 
 
     def generate_execution_plan(self, template_manager, deploy_ctx):
-        # type: (TemplateManager) -> list(Deploy)
-        ret = []
         template = template_manager.get_known_service(self.service_type)
-        ret.append(CloudFormationDeploy(stack_name=deploy_ctx.stack_name,
-                                        template=template,
-                                        deploy_ctx=deploy_ctx))
+        ret = [
+            CloudFormationDeploy(
+                stack_name=deploy_ctx.stack_name,
+                template=template,
+                deploy_ctx=deploy_ctx,
+            )
+        ]
+
         if template.has_monitor_definition():
             ret.extend(template.get_monitor_artifact().generate_execution_plan(deploy_ctx))
-        resource_deploy = template_manager.get_resource_service(self.artifact_directory)
-        if resource_deploy:
+        if resource_deploy := template_manager.get_resource_service(
+            self.artifact_directory
+        ):
             ret.append(CloudFormationDeploy(stack_name=deploy_ctx.resource_stack_name,
                                             template=resource_deploy,
                                             deploy_ctx=deploy_ctx))
@@ -135,25 +143,34 @@ class ServiceDefinition(object):
         with open(service_file_path, 'w') as def_file:
             json.dump(service_definition_object,def_file)
         with open(readme_file_path,'w') as read:
-            read.write("# Service Type: {}\n".format(service_type))
-            read.write("Generated on {}\n\n".format(datetime.datetime.now()))
+            read.write(f"# Service Type: {service_type}\n")
+            read.write(f"Generated on {datetime.datetime.now()}\n\n")
             read.write("Service template may have been modified, please verify usage with:\n")
             read.write(" ```bash\n")
-            read.write("infra-buddy validate-template --service-type {}\n".format(service_type))
+            read.write(f"infra-buddy validate-template --service-type {service_type}\n")
             read.write("```\n")
             read.write("## Known Service Modifications\n")
-            read.write("Define these service modifications in the service.json stanza '{}'\n".format(_MODIFICATIONS))
+            read.write(
+                f"Define these service modifications in the service.json stanza '{_MODIFICATIONS}'\n"
+            )
+
             read.write(" ```javascript\n")
-            read.write("\"{}\":[ \"modification-1\"]'\n".format(_MODIFICATIONS))
+            read.write(f"""\"{_MODIFICATIONS}\":[ \"modification-1\"]'\n""")
             read.write("```\n\n")
             read.write("| Service Modification |\n")
             read.write("| --- |\n")
             for key,val in known_service_modifications.items():
-                read.write("| {} |\n".format(key))
+                read.write(f"| {key} |\n")
             read.write("\n")
             read.write("## Deploy parameters\n\n")
-            read.write("Define these parameters in the service.json stanza '{}'\n\n".format(_DEPLOYMENT_PARAMETERS))
-            read.write("For environment specific values use the corresponding stanza in the form '<environment>-{}'\n".format(_DEPLOYMENT_PARAMETERS))
+            read.write(
+                f"Define these parameters in the service.json stanza '{_DEPLOYMENT_PARAMETERS}'\n\n"
+            )
+
+            read.write(
+                f"For environment specific values use the corresponding stanza in the form '<environment>-{_DEPLOYMENT_PARAMETERS}'\n"
+            )
+
             read.write("this is supported for the known environments: 'dev', 'ci', and 'prod'.\n\n")
             if len(deploy_params) > 0:
                 read.write("| Parameter | Description | Default Value |\n")
@@ -163,17 +180,20 @@ class ServiceDefinition(object):
                         parameter = definition['key']
                         description = definition.get("description","<None>")
                         default_val = definition.get("default","<None>")
-                        read.write("| {} | {} | {} |\n".format(parameter,description,default_val))
+                        read.write(f"| {parameter} | {description} | {default_val} |\n")
         return service_file_path
 
     @classmethod
     def _get_params_without_default_values(cls, deploy_params):
         ret = {}
         for key_, definition in deploy_params.items():
-               if 'default_type' in definition and definition["default_type"] == "property":
-                   if 'default_value' not in definition:
-                       definition_key_ = definition['key']
-                       ret[definition_key_] = os.environ.get(definition_key_,"")
+            if (
+                'default_type' in definition
+                and definition["default_type"] == "property"
+                and 'default_value' not in definition
+            ):
+                definition_key_ = definition['key']
+                ret[definition_key_] = os.environ.get(definition_key_,"")
         return ret
 
 

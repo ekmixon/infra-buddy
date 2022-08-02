@@ -91,16 +91,24 @@ class TemplateManagerTestCase(ParentTestCase):
         self.assertEqual(self.test_deploy_ctx.expandvars("${KEY_NAME}"), "unit-test-foo",
                          "Failed to render expected key value")
         self.test_deploy_ctx.push_deploy_ctx(deploy)
-        self.assertEqual(self.test_deploy_ctx.stack_name, "unit-test-foo-bar-{}-resources".format(self.run_random_word),
-                         "Failed to update stack_name")
+        self.assertEqual(
+            self.test_deploy_ctx.stack_name,
+            f"unit-test-foo-bar-{self.run_random_word}-resources",
+            "Failed to update stack_name",
+        )
+
         self.assertEqual(self.test_deploy_ctx.expandvars("${app}"), "foo-with-string",
                          "Failed to render deploy default")
         self.assertEqual(self.test_deploy_ctx.expandvars("${KEY_NAME}"), "override", "Failed to render deploy default")
         self.assertEqual(self.test_deploy_ctx.expandvars("${KEY_NAME_2}"), "foo",
                          "Failed to render deploy default template")
         self.test_deploy_ctx.pop_deploy_ctx()
-        self.assertEqual(self.test_deploy_ctx.stack_name, "unit-test-foo-bar-{}".format(self.run_random_word),
-                         "Failed to update stack_name after pop")
+        self.assertEqual(
+            self.test_deploy_ctx.stack_name,
+            f"unit-test-foo-bar-{self.run_random_word}",
+            "Failed to update stack_name after pop",
+        )
+
         self.assertEqual(self.test_deploy_ctx.expandvars("${KEY_NAME}"), "unit-test-foo",
                          "Failed to render expected key value after pop")
 

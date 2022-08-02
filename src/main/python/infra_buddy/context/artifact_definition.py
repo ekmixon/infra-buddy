@@ -49,11 +49,11 @@ class ArtifactDefinition(object):
 
     @classmethod
     def create_from_directory(cls, artifact_directory):
-        # type: (str) -> ArtifactDefinition
-        definition = ArtifactDefinition._load_artifact_definition(artifact_directory)
-        if not definition:
-            definition = ArtifactDefinition._search_for_legacy_implementation(artifact_directory)
-        if definition:
+        if definition := ArtifactDefinition._load_artifact_definition(
+            artifact_directory
+        ) or ArtifactDefinition._search_for_legacy_implementation(
+            artifact_directory
+        ):
             validate(definition, ArtifactDefinition.schema)
             return cls.create(definition[_ARTIFACT_TYPE], definition[_ARTIFACT_LOCATION],
                               definition[_ARTIFACT_IDENTIFIER])
@@ -84,7 +84,10 @@ class ArtifactDefinition(object):
     def _load_artifact_definition(artifact_directory):
         artifact_def_path = os.path.join(artifact_directory, _ARTIFACT_FILE)
         if os.path.exists(artifact_def_path):
-            print_utility.info("Defining artifact definition with artifact.json - {}".format(artifact_def_path))
+            print_utility.info(
+                f"Defining artifact definition with artifact.json - {artifact_def_path}"
+            )
+
             with open(artifact_def_path, 'r') as art_def:
                 return json.load(art_def)
         else:
@@ -100,7 +103,7 @@ class ArtifactDefinition(object):
             path = os.path.join(destination_dir, _ARTIFACT_FILE)
         else:
             path = _ARTIFACT_FILE
-        print_utility.info("Persisting artifact manfiest - {}".format(path))
+        print_utility.info(f"Persisting artifact manfiest - {path}")
         with open(path, 'w') as file:
             json.dump({_ARTIFACT_TYPE: self.artifact_type,
                        _ARTIFACT_LOCATION: self.artifact_location,

@@ -34,8 +34,13 @@ class ParentTestCase(unittest.TestCase):
         cls.default_config_path = ParentTestCase._get_resource_path('default_config.json')
         cls.default_config = load_path_as_json(ParentTestCase._get_resource_path('default_config.json'))
         cls.east_config = load_path_as_json(ParentTestCase._get_resource_path('east_config.json'))
-        cls.test_deploy_ctx = DeployContext.create_deploy_context(application="foo", role="bar-{}".format(cls.run_random_word), environment="unit-test",
-                                            defaults=cls.default_config)
+        cls.test_deploy_ctx = DeployContext.create_deploy_context(
+            application="foo",
+            role=f"bar-{cls.run_random_word}",
+            environment="unit-test",
+            defaults=cls.default_config,
+        )
+
         print_utility.configure(False)
 
     @classmethod
@@ -44,11 +49,11 @@ class ParentTestCase(unittest.TestCase):
 
     def clean(self, cloudformation):
         if cloudformation.stack_id is not None or cloudformation.does_stack_exist():
-            print_utility.info("Starting stack cleanup - {}".format(cloudformation.stack_id))
+            print_utility.info(f"Starting stack cleanup - {cloudformation.stack_id}")
             cloudformation.client.delete_stack(StackName=cloudformation.stack_name)
             waiter = cloudformation.client.get_waiter('stack_delete_complete')
             waiter.wait( StackName=cloudformation.stack_id)
-            print_utility.info("Finishing stack cleanup - {}".format(cloudformation.stack_id))
+            print_utility.info(f"Finishing stack cleanup - {cloudformation.stack_id}")
         elif cloudformation.existing_change_set_id is not None:
             cloudformation.delete_change_set()
 
@@ -71,8 +76,8 @@ class ParentTestCase(unittest.TestCase):
                 os.remove(os.path.join(directory, file))
             os.removedirs(directory)
         except Exception as e:
-            print('Error cleaning up ' + str(e))
+            print(f'Error cleaning up {str(e)}')
 
     @classmethod
     def randomWord(cls, param):
-        return ''.join(random.choice(string.ascii_lowercase) for i in range(param))
+        return ''.join(random.choice(string.ascii_lowercase) for _ in range(param))

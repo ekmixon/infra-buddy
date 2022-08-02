@@ -67,7 +67,7 @@ class TemplateManager(object):
 
     def get_service_modifications_for_service(self, service_type):
         ret = {}
-        ret.update(self.service_modification_templates.get(service_type, {}))
+        ret |= self.service_modification_templates.get(service_type, {})
         ret.update(self.default_service_modification_templates)
         return ret
 
@@ -92,12 +92,8 @@ class TemplateManager(object):
             return template
         else:
             print_utility.error(
-                "Unknown service template - {}" 
-                "- known templates are deploy_templates={} default_service_mod_templates={} service_mod_templates={}".format(
-                    template_name,
-                    self.deploy_templates.keys(), self.default_service_modification_templates.keys(), service_template_names
-                ),
-                raise_exception=True
+                f"Unknown service template - {template_name}- known templates are deploy_templates={self.deploy_templates.keys()} default_service_mod_templates={self.default_service_modification_templates.keys()} service_mod_templates={service_template_names}",
+                raise_exception=True,
             )
 
     def get_resource_service(self, artifact_directory):
@@ -107,10 +103,7 @@ class TemplateManager(object):
                                           err_on_failure_to_locate=False,
                                           service_type='aws-resources',
                                           template_name='aws-resources')
-            if template.valid:
-                return template
-            else:
-                return None
+            return template if template.valid else None
         except click.UsageError as e:
             return None
 
@@ -118,7 +111,10 @@ class TemplateManager(object):
         # type: (str, bool) -> Template
         template = self.deploy_templates.get(service_type, None)
         if not template:
-            print_utility.error("Unknown service template - {}".format(service_type), raise_exception=True)
+            print_utility.error(
+                f"Unknown service template - {service_type}", raise_exception=True
+            )
+
         template.download_template()
         return template
 
@@ -156,8 +152,11 @@ class TemplateManager(object):
                 template = AliasTemplate(service_type=name, values=values)
                 alias_templates.append(template)
             else:
-                print_utility.error("Can not locate resource. Requested unknown template type - {}".format(type_),
-                                    raise_exception=True)
+                print_utility.error(
+                    f"Can not locate resource. Requested unknown template type - {type_}",
+                    raise_exception=True,
+                )
+
                 raise Exception("")
 
             if service_modification:

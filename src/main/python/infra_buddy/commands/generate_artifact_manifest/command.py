@@ -17,7 +17,7 @@ from infra_buddy.utility import print_utility
 def deploy_cloudformation(artifact_type, artifact_location, artifact_identifier):
     # type: (str,str,str) -> None
     path  = do_command(artifact_type, artifact_location, artifact_identifier)
-    print_utility.info("Artifact Manifest saved to - {}".format(path))
+    print_utility.info(f"Artifact Manifest saved to - {path}")
 
 
 
@@ -25,5 +25,5 @@ def deploy_cloudformation(artifact_type, artifact_location, artifact_identifier)
 def do_command(artifact_type, artifact_location, artifact_identifier, destination=None):
     # type: (str,str,str) -> str
     ad = ArtifactDefinition.create(artifact_type, artifact_location, artifact_identifier)
-    print_utility.info("Generated artifact manifest - {}".format(ad.__class__.__class__))
+    print_utility.info(f"Generated artifact manifest - {ad.__class__.__class__}")
     return ad.save_to_file(destination_dir=destination)

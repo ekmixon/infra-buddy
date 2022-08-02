@@ -108,7 +108,7 @@ class AliasTemplate(Template):
         if self.lookup in templates:
             self.delegate = templates[self.lookup]
         else:
-            raise Exception("Unable to resolve alias template - {}".format(self.lookup))
+            raise Exception(f"Unable to resolve alias template - {self.lookup}")
 
     def download_template(self):
         self.delegate.download_template()

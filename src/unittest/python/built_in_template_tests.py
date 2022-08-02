@@ -18,5 +18,5 @@ class BuiltInTemplateTestCase(ParentTestCase):
             try:
                 vcommand.do_command(self.test_deploy_ctx,service_type=key)
             except:
-                print("Errors in {}".format(key))
+                print(f"Errors in {key}")
 

@@ -82,14 +82,15 @@ class CloudFormationDeploy(Deploy):
                     return self.deploy_ctx[def_key]
             # someday make it dynamic
             func_name = value['func_name']
-            if "load_balancer_name" == func_name:
+            if func_name == "load_balancer_name":
                 return helper_functions.load_balancer_name(self.deploy_ctx)
-            elif 'rule_priority' == func_name:
+            elif func_name == 'rule_priority':
                 return helper_functions.calculate_rule_priority(self.deploy_ctx, self.stack_name)
             else:
                 print_utility.error(
-                    "Can not locate function for defaults.json: Stack {} Function {}".format(self.stack_name,
-                                                                                             func_name))
+                    f"Can not locate function for defaults.json: Stack {self.stack_name} Function {func_name}"
+                )
+
         elif type_ == _PARAM_TYPE_PROPERTY:
             default_value = value.get('default', None)
             if isinstance(default_value, str):
@@ -105,27 +106,31 @@ class CloudFormationDeploy(Deploy):
         else:
             # should die on JSON validation but to be complete
             print_utility.error(
-                "Can not load value for type in defaults.json: Stack {} Type {}".format(self.stack_name, type_))
+                f"Can not load value for type in defaults.json: Stack {self.stack_name} Type {type_}"
+            )
 
     def transform(self, definition, value):
         func_name = definition['func_name']
-        if 'transform_fargate_cpu' == func_name:
+        if func_name == 'transform_fargate_cpu':
             return helper_functions.transform_fargate_cpu(self.defaults, value)
-        elif 'transform_fargate_memory' == func_name:
+        elif func_name == 'transform_fargate_memory':
             return helper_functions.transform_fargate_memory(self.defaults, value)
         else:
             print_utility.error(
-                "Can not locate function for defaults.json: Stack {} Function {}".format(self.stack_name,
-                                                                                         func_name))
+                f"Can not locate function for defaults.json: Stack {self.stack_name} Function {func_name}"
+            )
 
     def get_rendered_config_files(self):
         self._prep_render_destination()
         rendered_config_files = []
-        config_dir = self.config_directory
-        if config_dir:
-            for template in os.listdir(config_dir):
-                rendered_config_files.append(
-                    self.deploy_ctx.render_template(os.path.join(config_dir, template), self.destination))
+        if config_dir := self.config_directory:
+            rendered_config_files.extend(
+                self.deploy_ctx.render_template(
+                    os.path.join(config_dir, template), self.destination
+                )
+                for template in os.listdir(config_dir)
+            )
+
         return rendered_config_files
 
     def get_rendered_param_file(self):
@@ -147,7 +152,7 @@ class CloudFormationDeploy(Deploy):
     def _print_file(self, config_file):
         with open(config_file, 'r') as cf:
             print_utility.warn(os.path.basename(config_file))
-            for line in cf.readlines():
+            for line in cf:
                 print_utility.banner(line)
 
     def _prep_render_destination(self):
@@ -195,16 +200,15 @@ class CloudFormationDeploy(Deploy):
                 # Identify params without description
                 description = value.get('Description', None)
                 if not description: warning[key].append("Parameter does not contain a description")
-                # Identify params with defaults - should be done in defaults.json
-                # unless a special case default (i.e. AWS::SSM)
-                default = value.get('Default', None)
-                if default:
-                    type = value.get('Type',None)
-                    if type:
-                        if type and 'AWS::SSM' in type:
+                if default := value.get('Default', None):
+                    if type := value.get('Type', None):
+                        if 'AWS::SSM' in type:
                             ssm_keys.append(key)
                     else:
-                        warning[key].append("Parameter has default value defined in CloudFormation Template - {}".format(default))
+                        warning[key].append(
+                            f"Parameter has default value defined in CloudFormation Template - {default}"
+                        )
+
                 known_param[key] = {'description': description, 'type': value['Type']}
         # Load the parameters file
         value_to_key = {}
@@ -218,15 +222,15 @@ class CloudFormationDeploy(Deploy):
                     known_param[key_]['variable'] = param['ParameterValue']
                     value_to_key[param['ParameterValue'].replace("$", "").replace("{", "").replace("}", "")] = key_
                     expandvars = self.deploy_ctx.expandvars(param['ParameterValue'], self.defaults)
-                    if "${" in expandvars: warning[key_].append(
-                        "Parameter did not appear to validate ensure it is populated when using the template - {}"
-                            .format(expandvars))
+                    if "${" in expandvars:
+                        warning[key_].append(
+                            f"Parameter did not appear to validate ensure it is populated when using the template - {expandvars}"
+                        )
+
                     known_param[key_]['default_value'] = expandvars
-                else:
-                    # If it is not see if it is a special case
-                    if key_ not in ssm_keys:
-                        # exists in param file but not in template
-                        errors[key_].append("Parameter does not exist in template but defined in param file")
+                elif key_ not in ssm_keys:
+                    # exists in param file but not in template
+                    errors[key_].append("Parameter does not exist in template but defined in param file")
         # finally load our own defaults file
         if self.default_path and os.path.exists(self.default_path):
             with open(self.default_path, 'r') as defs:
@@ -264,8 +268,10 @@ class CloudFormationDeploy(Deploy):
     def print_template_description(self):
         with open(self.template_file, 'r') as template:
             template_obj = json.load(template)
-            print_utility.banner_warn("Deploy for Stack: {}".format(self.stack_name),
-                                      pydash.get(template_obj, 'Description', ''))
+            print_utility.banner_warn(
+                f"Deploy for Stack: {self.stack_name}",
+                pydash.get(template_obj, 'Description', ''),
+            )
 
     def _print_error(self, errors):
         for key, errs in errors.items():
@@ -298,15 +304,18 @@ class CloudFormationDeploy(Deploy):
                                               parameter_file=parameter_file_rendered)
             # make sure it is available and that there are no special conditions
             if cloud_formation.should_execute_change_set():
-                print_utility.progress("Updating existing stack with ChangeSet - {}".format(self.stack_name))
+                print_utility.progress(
+                    f"Updating existing stack with ChangeSet - {self.stack_name}"
+                )
+
                 cloud_formation.execute_change_set()
             else:
-                print_utility.warn("No computed changes for stack - {}".format(self.stack_name))
+                print_utility.warn(f"No computed changes for stack - {self.stack_name}")
                 # if there are no changes then clean up and exit
                 cloud_formation.delete_change_set()
                 return
         else:
-            print_utility.progress("Creating new stack - {}".format(self.stack_name))
+            print_utility.progress(f"Creating new stack - {self.stack_name}")
             cloud_formation.create_stack(template_file_url=template_file_url,
                                          parameter_file=parameter_file_rendered)
 

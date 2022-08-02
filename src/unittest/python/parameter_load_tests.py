@@ -22,9 +22,13 @@ class ParameterLoadTestCase(ParentTestCase):
         super(ParameterLoadTestCase, cls).setUpClass()
 
     def test_parameter_transformation(self):
-        ctx = DeployContext.create_deploy_context(application="dev-{}".format(self.run_random_word), role="cluster",
-                                                  environment="unit-test",
-                                                  defaults=self.default_config)
+        ctx = DeployContext.create_deploy_context(
+            application=f"dev-{self.run_random_word}",
+            role="cluster",
+            environment="unit-test",
+            defaults=self.default_config,
+        )
+
         try:
             template_dir = ParentTestCase._get_resource_path("parameter_load_tests/fargate")
             deploy = CloudFormationDeploy(ctx.stack_name, NamedLocalTemplate(template_dir), ctx)
@@ -38,9 +42,13 @@ class ParameterLoadTestCase(ParentTestCase):
             pass
 
     def test_fargate_processing(self):
-        ctx = DeployContext.create_deploy_context(application="dev-{}".format(self.run_random_word), role="cluster",
-                                                  environment="unit-test",
-                                                  defaults=self.default_config)
+        ctx = DeployContext.create_deploy_context(
+            application=f"dev-{self.run_random_word}",
+            role="cluster",
+            environment="unit-test",
+            defaults=self.default_config,
+        )
+
         ctx['USE_FARGATE'] = 'true'
         cpu_transforms = {
             128: 256,
@@ -81,7 +89,10 @@ class ParameterLoadTestCase(ParentTestCase):
         for config in invalid_configuration:
             try:
                 helper_functions._validate_fargate_resource_allocation(config[0],config[1],{})
-                self.fail("Failed to detect invalid fargate configuration - {} CPU {} Memory".format(config[0],config[1]))
+                self.fail(
+                    f"Failed to detect invalid fargate configuration - {config[0]} CPU {config[1]} Memory"
+                )
+
             except:
                 pass
 

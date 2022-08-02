@@ -13,14 +13,18 @@ class ECSDeploy(Deploy):
     def _internal_deploy(self, dry_run):
         self.ecs_buddy.set_container_image(self.artifact_location, self.artifact_id)
         if dry_run:
-            print_utility.warn("ECS Deploy would update service {} to use image {}".format(self.ecs_buddy.ecs_service,
-                                                                                           self.ecs_buddy.new_image))
+            print_utility.warn(
+                f"ECS Deploy would update service {self.ecs_buddy.ecs_service} to use image {self.ecs_buddy.new_image}"
+            )
+
             return None
         if self.ecs_buddy.requires_update():
             self.ecs_buddy.perform_update()
 
-            print_utility.progress("ECS Deploy updated service {} to use image {}".format(self.ecs_buddy.ecs_service,
-                                                                                           self.ecs_buddy.new_image))
+            print_utility.progress(
+                f"ECS Deploy updated service {self.ecs_buddy.ecs_service} to use image {self.ecs_buddy.new_image}"
+            )
+
             return True
         else:
             print_utility.progress("ECS already using image - "
@@ -30,6 +34,6 @@ class ECSDeploy(Deploy):
             return False
 
     def __str__(self):
-       return "{} - {}:{}".format(self.__class__.__name__,self.artifact_location,self.artifact_id)
+        return f"{self.__class__.__name__} - {self.artifact_location}:{self.artifact_id}"
 
 

@@ -35,9 +35,13 @@ class HelperTestCase(ParentTestCase):
         self.assertEqual(helper_functions._get_max_priority(rules), 89, "Failed to id max")
 
     def test_helper_funcs(self):
-        ctx = DeployContext.create_deploy_context(application="dev-{}".format(self.run_random_word), role="cluster",
-                                                  environment="unit-test",
-                                                  defaults=self.default_config)
+        ctx = DeployContext.create_deploy_context(
+            application=f"dev-{self.run_random_word}",
+            role="cluster",
+            environment="unit-test",
+            defaults=self.default_config,
+        )
+
         cloudformation = CloudFormationBuddy(ctx)
         try:
             template_dir = ParentTestCase._get_resource_path("parameter_load_tests/helper_func")
@@ -48,7 +52,7 @@ class HelperTestCase(ParentTestCase):
             rp = helper_functions.calculate_rule_priority(ctx, "foo-bar")
             self.assertEqual(rp, "31", "Failed to calculate rule priority")
             name = helper_functions.load_balancer_name(ctx)
-            print("Name: " + name)
+            print(f"Name: {name}")
             self.assertEqual(name.count('/'), 2, "Failed to trim")
             self.assertEqual(name.count(':'), 0, "Failed to trim")
             self.assertTrue(name.startswith('app'), "Failed to trim")

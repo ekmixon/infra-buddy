@@ -19,7 +19,7 @@ def load_balancer_name(deploy_ctx):
     # //#amazon conveniently wants some substring of the ARN instead of the name or other value actually available in the API
     # //# turn arn:aws:elasticloadbalancing:us-west-2:271083817914:listener/app/prod-EcsEl-1WYNMMT2MT9NR/c5f92ddeb151227f/313bb2e23d9dd8d8
     # //# into app/prod-EcsEl-1WYNMMT2MT9NR/c5f92ddeb151227f/313bb2e23d9dd8d8
-    return "" if not val else val[val.find('app/'):]
+    return val[val.find('app/'):] if val else ""
 
 
 def _get_cluster_stack_export_value(cf, deploy_ctx, param):
@@ -29,7 +29,7 @@ def _get_cluster_stack_export_value(cf, deploy_ctx, param):
         cf.stack_name = deploy_ctx.cluster_stack_name
         val = cf.get_export_value(param)
     except Exception as e:
-        print_utility.warn("Exception getting export for helper function - {}".format(e))
+        print_utility.warn(f"Exception getting export for helper function - {e}")
     finally:
         return val
 
@@ -49,40 +49,63 @@ def _get_max_priority(rules):
 # Between 8GB and 30GB in 1GB increments - Available cpu values: 4096 (4 vCPU)
 def _get_valid_fargate_memory(_value):
     if _value <= 512:
-        print_utility.info("Transforming memory value of {} to '0.5GB' - min value".format(_value))
+        print_utility.info(
+            f"Transforming memory value of {_value} to '0.5GB' - min value"
+        )
+
         return '512'
     elif _value < 1024:
-        print_utility.info("Transforming memory value of {} to '1GB' - next legitimate value".format(_value))
+        print_utility.info(
+            f"Transforming memory value of {_value} to '1GB' - next legitimate value"
+        )
+
         return '1024'
     else:
-        memory = int(math.ceil(_value/1024.0))
-        memory = memory * 1024 #normalize to closest interval of 1GB
+        memory = int(math.ceil(_value/1024.0)) * 1024
         if memory > 30720:
-            print_utility.info("Transforming memory value of {} to '30GB' - max value".format(_value))
+            print_utility.info(
+                f"Transforming memory value of {_value} to '30GB' - max value"
+            )
+
             memory = 30720
         else:
-            print_utility.info("Transforming memory value of {} to '{}'".format(_value, memory))
+            print_utility.info(f"Transforming memory value of {_value} to '{memory}'")
         return memory
 
 
 def _get_valid_fargate_cpu(_value):
     if _value <= 256:
-        print_utility.info("Transforming cpu value of {} to '256' - min value".format(_value))
+        print_utility.info(f"Transforming cpu value of {_value} to '256' - min value")
         return 256
     elif _value <= 512:
-        print_utility.info("Transforming cpu value of {} to '512' - next valid value".format(_value))
+        print_utility.info(
+            f"Transforming cpu value of {_value} to '512' - next valid value"
+        )
+
         return 512
     elif _value <= 1024:
-        print_utility.info("Transforming cpu value of {} to '1024' - next valid value".format(_value))
+        print_utility.info(
+            f"Transforming cpu value of {_value} to '1024' - next valid value"
+        )
+
         return 1024
     elif _value <= 2048:
-        print_utility.info("Transforming cpu value of {} to '2048' - next valid value".format(_value))
+        print_utility.info(
+            f"Transforming cpu value of {_value} to '2048' - next valid value"
+        )
+
         return 2048
     elif _value <= 4096:
-        print_utility.info("Transforming cpu value of {} to '4096' - next valid value".format(_value))
+        print_utility.info(
+            f"Transforming cpu value of {_value} to '4096' - next valid value"
+        )
+
         return 4096
     else:
-        print_utility.info("Transforming cpu value of {} to '4096' - max valid value".format(_value))
+        print_utility.info(
+            f"Transforming cpu value of {_value} to '4096' - max valid value"
+        )
+
         return 4096
 
 
@@ -93,34 +116,43 @@ def _get_valid_fargate_cpu(_value):
 # 4096 (4 vCPU) - Available memory values: Between 8GB and 30GB in 1GB increments
 _valid_fargate_resources = {
     256: ['512', '1024', '2048'],
-    512: ["{}".format(i*1024) for i in range(1, 5)],
-    1024: ["{}".format(i*1024) for i in range(2, 9)],
-    2048: ["{}".format(i*1024) for i in range(4, 17)],
-    4096: ["{}".format(i*1024) for i in range(8, 31)],
+    512: [f"{i * 1024}" for i in range(1, 5)],
+    1024: [f"{i * 1024}" for i in range(2, 9)],
+    2048: [f"{i * 1024}" for i in range(4, 17)],
+    4096: [f"{i * 1024}" for i in range(8, 31)],
 }
 
-_valid_fargate_memories = set([item for sublist in _valid_fargate_resources.values() for item in sublist])
+
+_valid_fargate_memories = {
+    item for sublist in _valid_fargate_resources.values() for item in sublist
+}
 
 
 def _validate_fargate_resource_allocation(cpu, memory, deploy_ctx):
     if cpu is None:
         discovered_cpu = deploy_ctx.get('TASK_CPU', None)
         if discovered_cpu not in _valid_fargate_resources:
-            print_utility.info('Skipping fargate resource validation - CPU not transformed - {}'.format(discovered_cpu))
+            print_utility.info(
+                f'Skipping fargate resource validation - CPU not transformed - {discovered_cpu}'
+            )
+
             return
         cpu = discovered_cpu
     elif memory is None:
         discovered_memory = deploy_ctx.get('TASK_SOFT_MEMORY', None)
         if discovered_memory not in _valid_fargate_memories:
             print_utility.info(
-                'Skipping fargate resource validation - Memory not transformed - {}'.format(discovered_memory))
+                f'Skipping fargate resource validation - Memory not transformed - {discovered_memory}'
+            )
+
             return
         memory = discovered_memory
     memory_possibilities = _valid_fargate_resources[cpu]
     if memory not in memory_possibilities:
         print_utility.error(
-            'Attempting to use fargate with invalid configuration.  {} CPU {} Memory'.format(cpu, memory),
-            raise_exception=True)
+            f'Attempting to use fargate with invalid configuration.  {cpu} CPU {memory} Memory',
+            raise_exception=True,
+        )
 
 
 def transform_fargate_cpu(deploy_ctx, _value):
@@ -139,13 +171,14 @@ def transform_fargate_memory(deploy_ctx, _value):
         if isinstance(_value, str):
             if _value not in _valid_fargate_memories:
                 print_utility.error(
-                    'Attempting to use fargate with invalid memory.  {} Memory Valid Values: {}'.format(_value,
-                                                                                                        _valid_fargate_memories),
-                    raise_exception=True)
+                    f'Attempting to use fargate with invalid memory.  {_value} Memory Valid Values: {_valid_fargate_memories}',
+                    raise_exception=True,
+                )
+
             else:
                 memory = _value
         else:
-            memory = "{}".format(_get_valid_fargate_memory(_value))
+            memory = f"{_get_valid_fargate_memory(_value)}"
         _validate_fargate_resource_allocation(None, memory, deploy_ctx)
         return memory
 
@@ -157,21 +190,23 @@ def calculate_rule_priority(deploy_ctx, stack_name):
     cf.stack_name = stack_name
     if cf.does_stack_exist():
         return cf.get_existing_parameter_value('RulePriority')
+    if listenerArn := _get_cluster_stack_export_value(
+        cf, deploy_ctx, "ListenerARN"
+    ):
+        client = get_boto_client(deploy_ctx)
+        rules = client.describe_rules(ListenerArn=listenerArn)['Rules']
     else:
-        listenerArn = _get_cluster_stack_export_value(cf, deploy_ctx, "ListenerARN")
-        if listenerArn:
-            client = get_boto_client(deploy_ctx)
-            rules = client.describe_rules(ListenerArn=listenerArn)['Rules']
-        else:
-            rules = None
-        if not rules or len(rules) == 0:
-            current_max = 30
-        else:
-            if len(rules) == 1 and rules[0]['Priority'] == "default":
-                current_max = 30
-            else:
-                current_max = int(_get_max_priority(rules))
-        return str(current_max + 1)
+        rules = None
+    if not rules or len(rules) == 0:
+        current_max = 30
+    else:
+        current_max = (
+            30
+            if len(rules) == 1 and rules[0]['Priority'] == "default"
+            else int(_get_max_priority(rules))
+        )
+
+    return str(current_max + 1)
 
     # //if [[ $(does_stack_exist ${STACK_NAME}) == "Yes" ]]; then
     # //    RULE_PRIORITY=$(print_stack_param ${STACK_NAME} "RulePriority")

@@ -29,11 +29,21 @@ class DeployContextTestCase(ParentTestCase):
         self.assertEqual(deploy_ctx.vpcapp, "foo", "Failed to generate generate_short_app_name")
 
     def test_s3_config_url_path(self):
-        east_deploy_ctx = DeployContext.create_deploy_context(application="foo", role="bar-{}".format(self.run_random_word), environment="unit-test",
-                                            defaults=self.east_config)
+        east_deploy_ctx = DeployContext.create_deploy_context(
+            application="foo",
+            role=f"bar-{self.run_random_word}",
+            environment="unit-test",
+            defaults=self.east_config,
+        )
+
         self.assertTrue("s3." in east_deploy_ctx.config_templates_url)
-        test_deploy_ctx = DeployContext.create_deploy_context(application="foo", role="bar-{}".format(self.run_random_word), environment="unit-test",
-                                            defaults=self.default_config)
+        test_deploy_ctx = DeployContext.create_deploy_context(
+            application="foo",
+            role=f"bar-{self.run_random_word}",
+            environment="unit-test",
+            defaults=self.default_config,
+        )
+
         self.assertTrue("s3-us-west-1." in test_deploy_ctx.config_templates_url)
 
     def _validate_deploy_ctx(self, deploy_ctx):
@@ -85,13 +95,14 @@ class DeployContextTestCase(ParentTestCase):
         try:
             template = deploy_ctx.render_template(render_file_test,mkdtemp)
             expected = {
-                "EnvName": "unit-test-foo-bar-{}".format(self.run_random_word),
+                "EnvName": f"unit-test-foo-bar-{self.run_random_word}",
                 "Unknown": "${Unknown}",
                 "Environment": "unit-test",
                 "VPCStack": "unit-test-foo-vpc",
                 "ClusterStack": "unit-test-foo-cluster",
-                "DesiredCapacity": "\${DESIRED_CAPACITY}"
+                "DesiredCapacity": "\${DESIRED_CAPACITY}",
             }
+
             with open(template, 'r') as source:
                 load = json.load(source)
                 for val in load:
@@ -134,7 +145,10 @@ class DeployContextTestCase(ParentTestCase):
             deploy_ctx = DeployContext.create_deploy_context_artifact(artifact_directory=artifact_directory,
                                                                  environment=env,
                                                                  defaults=self.default_config)
-            self.assertEqual(deploy_ctx['OVERRIDE'], "{}bar".format(env), "Failed to load {} value".format(env))
+            self.assertEqual(
+                deploy_ctx['OVERRIDE'], f"{env}bar", f"Failed to load {env} value"
+            )
+
             self.assertEqual(deploy_ctx['API_PATH'], "bar", "Failed to load static value")
 
 
@@ -144,7 +158,9 @@ class DeployContextTestCase(ParentTestCase):
                                                                   environment="unit-test",
                                                                   defaults=self.default_config)
         plan = deploy_ctx.get_execution_plan()
-        self.assertEqual(len(plan),4, "Failed to identify all elements of execution - {}".format(plan))
+        self.assertEqual(
+            len(plan), 4, f"Failed to identify all elements of execution - {plan}"
+        )
 
     def test_deploy_validate(self):
         artifact_directory = self._get_resource_path('artifact_directory_tests/artifact_execution_plan_test')

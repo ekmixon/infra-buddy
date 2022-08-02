@@ -67,7 +67,12 @@ class CloudFormationTestCase(ParentTestCase):
         s3 = CloudFormationDeployS3Buddy(self.test_deploy_ctx)
         try:
             self.assertTrue(cloudformation.does_stack_exist(), "Failed to create stack")
-            self.assertEqual(s3.get_file_as_string("install_template.sh"),"foo-bar-{}".format(self.run_random_word),"Did not render config template")
+            self.assertEqual(
+                s3.get_file_as_string("install_template.sh"),
+                f"foo-bar-{self.run_random_word}",
+                "Did not render config template",
+            )
+
         finally:
             super(CloudFormationTestCase, self).clean(cloudformation)
             super(CloudFormationTestCase, self).clean_s3(s3)

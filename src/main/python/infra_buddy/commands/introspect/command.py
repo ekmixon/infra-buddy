@@ -26,11 +26,11 @@ def do_command(deploy_ctx,type_filter):
     stacks = cf_buddy.list_stacks(deploy_ctx.stack_name)
     resources = cf_buddy.load_resources_for_stack_list(stacks)
     for stack_name, resources in resources.items():
-        print_utility.banner("Stack: {}".format(stack_name))
+        print_utility.banner(f"Stack: {stack_name}")
         for resource in resources:
             if not type_filter or type_filter in resource['ResourceType']:
-                print_utility.info_banner("\tName: {}".format(resource['LogicalResourceId']))
-                print_utility.info_banner("\tType: {}".format(resource['ResourceType']))
+                print_utility.info_banner(f"\tName: {resource['LogicalResourceId']}")
+                print_utility.info_banner(f"\tType: {resource['ResourceType']}")
 
         
         

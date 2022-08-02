@@ -18,25 +18,25 @@ class S3Deploy(Deploy):
     def _internal_deploy(self, dry_run):
         mkdtemp = tempfile.mkdtemp()
         if not self.artifact_id.endswith(".zip" ):
-            self.artifact_id = "{}.zip".format(self.artifact_id)
+            self.artifact_id = f"{self.artifact_id}.zip"
         artifact_download = "s3://{location}/{artifact_id}".format(location=self.location,artifact_id=self.artifact_id)
         destination_bucket = self.cloud_formation_buddy.get_export_value(param="WWW-Files")
         s3util.download_zip_from_s3_url(artifact_download,destination=mkdtemp)
 
         to_upload = self.get_filepaths(mkdtemp)
         if dry_run:
-            print_utility.banner_warn("Dry Run: Uploading files to - {}".format(destination_bucket),
-                                      str(to_upload))
+            print_utility.banner_warn(
+                f"Dry Run: Uploading files to - {destination_bucket}",
+                str(to_upload),
+            )
+
         else:
             split = destination_bucket.split("/")
-            if len(split)>1:
-                path = "/".join(split[1:])
-            else:
-                path = ''
+            path = "/".join(split[1:]) if len(split)>1 else ''
             s3 = S3Buddy(self.deploy_ctx, path, split[0])
-            print_utility.progress("S3 Deploy: Uploading files to - {}".format(destination_bucket))
+            print_utility.progress(f"S3 Deploy: Uploading files to - {destination_bucket}")
             for s3_key, path in to_upload.items():
-                print_utility.info("{} - {}".format(destination_bucket, s3_key))
+                print_utility.info(f"{destination_bucket} - {s3_key}")
                 s3.upload(key_name=s3_key, file=path)
 
     def get_filepaths(self, local_directory):
@@ -52,6 +52,6 @@ class S3Deploy(Deploy):
         return rel_paths
 
     def __str__(self):
-       return "{} - {}:{}".format(self.__class__.__name__,self.location,self.artifact_id)
+        return f"{self.__class__.__name__} - {self.location}:{self.artifact_id}"
 
 

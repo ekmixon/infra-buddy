@@ -17,20 +17,21 @@ class DataDogMonitorDeploy(Deploy):
     def _internal_deploy(self, dry_run):
         to_deploy = self.expand_monitors()
         for monitor in to_deploy:
-            print_utility.info("Deploying datadog monitor: {}".format(monitor['name']))
+            print_utility.info(f"Deploying datadog monitor: {monitor['name']}")
             if not dry_run:
                 self.init_dd()
-                existing_id = self.find_monitor_if_exists(monitor['name'])
-                if not existing_id:
-                    response = dd.api.Monitor.create(**monitor)
-                    created_name = response.get('name', None)
-                    if created_name:
-                        print_utility.info("Created monitor - {}".format(created_name))
-                    else:
-                        print_utility.error("Error creating monitor - {}".format(response), raise_exception=True)
-                else:
+                if existing_id := self.find_monitor_if_exists(monitor['name']):
                     response = dd.api.Monitor.update(id=existing_id, **monitor)
-                    print_utility.info("Updated monitor - {}".format(response['name']))
+                    print_utility.info(f"Updated monitor - {response['name']}")
+                else:
+                    response = dd.api.Monitor.create(**monitor)
+                    if created_name := response.get('name', None):
+                        print_utility.info(f"Created monitor - {created_name}")
+                    else:
+                        print_utility.error(
+                            f"Error creating monitor - {response}",
+                            raise_exception=True,
+                        )
 
     def init_dd(self):
         api_key = self.deploy_ctx.get('DATADOG_KEY', None)
@@ -49,20 +50,24 @@ class DataDogMonitorDeploy(Deploy):
         return to_deploy
 
     def __str__(self):
-        return "{} - {} monitors".format(self.__class__.__name__, len(self.monitors))
+        return f"{self.__class__.__name__} - {len(self.monitors)} monitors"
 
     def perform_data_checks(self, monitor):
         # datadog exports more complex metric alerts are query alerts, but it wants them
         # created as metric alerts so help the user out if they just copy/pasted the datadog output
-        if 'query alert' == monitor['type']:
+        if monitor['type'] == 'query alert':
             monitor['type'] = 'metric alert'
         monitor['name'] = self.deploy_ctx.expandvars("{}: {}".format("${ENVIRONMENT}-${APPLICATION}-${ROLE}", monitor['name']))
 
     def find_monitor_if_exists(self, name_):
-        for mon in self.get_all_monitors_by_name(name_):
-            if mon['name'] == name_:
-                return mon['id']
-        return None
+        return next(
+            (
+                mon['id']
+                for mon in self.get_all_monitors_by_name(name_)
+                if mon['name'] == name_
+            ),
+            None,
+        )
 
     def get_all_monitors_by_name(self, name_):
         return dd.api.Monitor.get_all(name=name_)

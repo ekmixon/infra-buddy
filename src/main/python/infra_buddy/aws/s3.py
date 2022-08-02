@@ -23,15 +23,17 @@ class S3Buddy(object):
         self.s3 = boto3.resource('s3', region_name=self.deploy_ctx.region)
         self.bucket = self.s3.Bucket(bucket_name)
         try:
-            print_utility.info("S3Buddy using bucket_name={}, root_path={}".format(bucket_name, root_path))
-            configuration = self._get_bucket_configuration()
-            if configuration:
+            print_utility.info(
+                f"S3Buddy using bucket_name={bucket_name}, root_path={root_path}"
+            )
+
+            if configuration := self._get_bucket_configuration():
                 self.bucket.create(CreateBucketConfiguration=configuration)
             else:
                 self.bucket.create()
         except (botocore.exceptions.ValidationError, botocore.exceptions.ClientError) as err:
             if 'BucketAlreadyOwnedByYou' not in str(err):
-                print_utility.info("Error during bucket create - {}".format(str(err)))
+                print_utility.info(f"Error during bucket create - {str(err)}")
         self.bucket_name = bucket_name
         self.deploy_ctx = deploy_ctx
         self.s3 = boto3.resource('s3', region_name=self.deploy_ctx.region)
@@ -57,13 +59,14 @@ class S3Buddy(object):
         if content_type:
             args['ContentType'] = content_type
         self.bucket.put_object(**args)
-        print_utility.info("Uploaded file to S3 - Bucket: {} Key: {} Content-Type: {}".format(self.bucket_name,
-                                                                                              key_name,
-                                                                                              content_type))
-        return "{}/{}".format(self.url_base, key_name)
+        print_utility.info(
+            f"Uploaded file to S3 - Bucket: {self.bucket_name} Key: {key_name} Content-Type: {content_type}"
+        )
+
+        return f"{self.url_base}/{key_name}"
 
     def _get_upload_bucket_key_name(self, file, key_name=None):
-        key_name = (key_name if key_name else os.path.basename(file))
+        key_name = key_name or os.path.basename(file)
         if self.key_root_path and self.key_root_path != '':
             return "{path}/{key_name}".format(path=self.key_root_path,
                                               key_name=key_name)
@@ -75,8 +78,7 @@ class S3Buddy(object):
 
     def _get_s3_object(self, filename):
         key_name = self._get_upload_bucket_key_name(file=None, key_name=filename)
-        obj = self.s3.meta.client.get_object(Bucket=self.bucket_name, Key=key_name)
-        return obj
+        return self.s3.meta.client.get_object(Bucket=self.bucket_name, Key=key_name)
 
     def _guess_content_type(self,filename):
         """Given a filename, guess it's content type.
@@ -115,7 +117,10 @@ def download_zip_from_s3_url(s3_url, destination):
     s3 = boto3.resource('s3')
     with tempfile.NamedTemporaryFile() as temporary_file:
         temp_file_path = temporary_file.name
-    print_utility.info("Downloading zip from s3: {} - {}:{}".format(s3_url, key, temp_file_path))
+    print_utility.info(
+        f"Downloading zip from s3: {s3_url} - {key}:{temp_file_path}"
+    )
+
     s3.Bucket(bucket).download_file(key, temp_file_path)
     with ZipFile(temp_file_path) as zf:
         zf.extractall(destination)

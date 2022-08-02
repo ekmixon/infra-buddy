@@ -27,7 +27,7 @@ class BootStrapTestCase(ParentTestCase):
             res = client.describe_key_pairs()
             known = pydash.pluck(res['KeyPairs'], 'KeyName')
             for key in gen_keys:
-                self.assertTrue(key in known,"Did not generate key - {}".format(key))
+                self.assertTrue(key in known, f"Did not generate key - {key}")
         finally:
             for gen_key in gen_keys:
                 client.delete_key_pair(KeyName=gen_key)

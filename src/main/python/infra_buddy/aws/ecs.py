@@ -13,15 +13,18 @@ class ECSBuddy(object):
         self.deploy_ctx = deploy_ctx
         self.client = boto3.client('ecs', region_name=self.deploy_ctx.region)
         cf = CloudFormationBuddy(deploy_ctx)
-        ecs_cluster_export_key = "{}-ECSCluster".format(self.deploy_ctx.cluster_stack_name)
+        ecs_cluster_export_key = f"{self.deploy_ctx.cluster_stack_name}-ECSCluster"
         self.cluster = self._wait_for_export(cf=cf, fully_qualified_param_name=ecs_cluster_export_key)
-        ecs_service_export_key = "{}-ECSService".format(self.deploy_ctx.stack_name)
+        ecs_service_export_key = f"{self.deploy_ctx.stack_name}-ECSService"
         self.ecs_service = self._wait_for_export(cf=cf, fully_qualified_param_name=ecs_service_export_key)
-        ecs_task_family_export_key = "{}-ECSTaskFamily".format(self.deploy_ctx.stack_name)
+        ecs_task_family_export_key = f"{self.deploy_ctx.stack_name}-ECSTaskFamily"
         self.ecs_task_family = self._wait_for_export(cf=cf, fully_qualified_param_name=ecs_task_family_export_key)
-        ecs_task_execution_role_export_key = "{}-ECSTaskExecutionRole".format(self.deploy_ctx.stack_name)
+        ecs_task_execution_role_export_key = (
+            f"{self.deploy_ctx.stack_name}-ECSTaskExecutionRole"
+        )
+
         self.ecs_task_execution_role = self._wait_for_export(cf=cf, fully_qualified_param_name=ecs_task_execution_role_export_key)
-        ecs_task_role_export_key = "{}-ECSTaskRole".format(self.deploy_ctx.stack_name)
+        ecs_task_role_export_key = f"{self.deploy_ctx.stack_name}-ECSTaskRole"
         self.ecs_task_role = self._wait_for_export(cf=cf, fully_qualified_param_name=ecs_task_role_export_key)
         self.task_definition_description = None
         self.new_image = None
@@ -40,7 +43,7 @@ class ECSBuddy(object):
             exception=False
         )
 
-        print_utility.info("[wait_for_export] {}={}".format(fully_qualified_param_name, value))
+        print_utility.info(f"[wait_for_export] {fully_qualified_param_name}={value}")
         return value
 
     def set_container_image(self, location, tag):
@@ -55,8 +58,8 @@ class ECSBuddy(object):
             return False
         self._describe_task_definition()
         existing = pydash.get(self.task_definition_description, "containerDefinitions[0].image")
-        print_utility.info("ECS task existing image - {}".format(existing))
-        print_utility.info("ECS task desired image - {}".format(self.new_image))
+        print_utility.info(f"ECS task existing image - {existing}")
+        print_utility.info(f"ECS task desired image - {self.new_image}")
         return existing != self.new_image
 
     def perform_update(self):
@@ -87,12 +90,12 @@ class ECSBuddy(object):
         if using_fargate:
             first_container = new_task_def['containerDefinitions'][0]
             new_task_def['requiresCompatibilities'] = ['FARGATE']
-            new_cpu = ctx_cpu or first_container.get('cpu')
-            if new_cpu:
+            if new_cpu := ctx_cpu or first_container.get('cpu'):
                 new_task_def['cpu'] = str(new_cpu)  # not sure if this is right but AWS says it should be str
 
-            new_memory = ctx_memory or first_container.get('memoryReservation')
-            if new_memory:
+            if new_memory := ctx_memory or first_container.get(
+                'memoryReservation'
+            ):
                 new_task_def['memory'] = str(new_memory)  # not sure if this is right but AWS says it should be str
 
         if self.ecs_task_execution_role:
@@ -101,10 +104,10 @@ class ECSBuddy(object):
             new_task_def['taskRoleArn'] = self.ecs_task_role
 
         for k, v in self.deploy_ctx.items():
-            print_utility.info('[deploy_ctx] {} = {}'.format(k, repr(v)))
+            print_utility.info(f'[deploy_ctx] {k} = {repr(v)}')
 
         for k, v in new_task_def.items():
-            print_utility.info('[new_task_def] {} = {}'.format(k, repr(v)))
+            print_utility.info(f'[new_task_def] {k} = {repr(v)}')
 
         updated_task_definition = self.client.register_task_definition(**new_task_def)['taskDefinition']
         new_task_def_arn = updated_task_definition['taskDefinitionArn']
@@ -125,7 +128,11 @@ class ECSBuddy(object):
             )
         except Exception as e:
             success = False
-            print_utility.error("Error waiting for service to stabilize - {}".format(e.message), raise_exception=True)
+            print_utility.error(
+                f"Error waiting for service to stabilize - {e.message}",
+                raise_exception=True,
+            )
+
         finally:
             self.deploy_ctx.notify_event(
                 title="Update of ecs service {service} completed".format(service=self.ecs_service,

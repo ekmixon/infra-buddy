@@ -19,7 +19,7 @@ name = "infra-buddy"
 def initialize(project):
 
     build_number = project.get_property("build_number")
-    if build_number is not None and "" != build_number:
+    if build_number is not None and build_number != "":
         project.version = build_number
     else:
         project.version = "0.0.999"
